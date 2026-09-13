@@ -6,7 +6,7 @@ from solver import solve_n_queens, columns_to_board
 st.set_page_config(page_title="Queen's Guard", page_icon="♛", layout="wide")
 
 # ------------------------------------------------------------------
-# BOARD SIZE + DIFFICULTY — now fully independent
+# BOARD SIZE + DIFFICULTY — fully independent
 # ------------------------------------------------------------------
 BOARD_SIZES = [4, 5, 6, 8]
 
@@ -94,7 +94,7 @@ def reset_game():
     st.session_state.hint_cell = None
     st.session_state.conflict_cell = None
     st.session_state.history = []
-    st.session_state.start_time = None       # starts on first move (see note above the code)
+    st.session_state.start_time = None
     st.session_state.finished_time = None
     st.session_state.won = False
     st.session_state.game_over = False
@@ -104,12 +104,10 @@ def reset_game():
     st.session_state.last_message_type = "info"
 
 def on_board_size_change():
-    """Fires the instant Board Size changes — rebuilds before the script reruns, so it always takes on the first click."""
     st.session_state.board_size = st.session_state.board_size_select
     reset_game()
 
 def on_difficulty_change():
-    """Fires the instant Difficulty changes — completely independent of Board Size."""
     st.session_state.difficulty = st.session_state.difficulty_select
     reset_game()
 
@@ -164,9 +162,57 @@ st.markdown(
         align-items: flex-start !important;
     }
 
+    /* ---- Sidebar base ---- */
+    /* Force the focus/selection ring to gold on every click, including
+   the very first one after the app starts — closes the brief blue
+   flash before Streamlit's theme color takes over. */
+[data-testid="stSidebar"] [data-baseweb="select"] > div {
+    border-color: var(--qg-border) !important;
+}
+[data-testid="stSidebar"] [data-baseweb="select"] > div:focus-within {
+    border-color: var(--qg-gold) !important;
+    box-shadow: 0 0 0 1px var(--qg-gold) !important;
+}
+[data-testid="stSidebar"] [data-baseweb="select"] [aria-selected="true"] {
+    background-color: var(--qg-gold) !important;
+    color: var(--qg-navy) !important;
+}
+div[data-baseweb="popover"] li[aria-selected="true"] {
+    background-color: var(--qg-gold) !important;
+    color: var(--qg-navy) !important;
+}
     [data-testid="stSidebar"] { background-color: var(--qg-card-bg); border-right: 1px solid var(--qg-border); }
     [data-testid="stSidebar"] h2 { color: var(--qg-navy); font-weight: 700; }
-    [data-testid="stSidebar"] label { color: var(--qg-navy); font-weight: 600; }
+    [data-testid="stSidebar"] label p { color: var(--qg-navy) !important; font-weight: 600 !important; }
+    [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p { color: var(--qg-text-muted) !important; }
+
+    /* ---- Sidebar dropdowns (Board Size / Difficulty) ----
+       Fixes the near-invisible light-gray selected text and arrow
+       by forcing every text/icon element inside the selectbox to
+       navy, and giving the box itself a gold-on-focus border. */
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div {
+        border-color: var(--qg-border) !important;
+        background-color: var(--qg-card-bg) !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div:focus-within {
+        border-color: var(--qg-gold) !important;
+        box-shadow: 0 0 0 1px var(--qg-gold) !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] div[data-baseweb="select"] * {
+        color: var(--qg-navy) !important;
+        fill: var(--qg-navy) !important;
+        opacity: 1 !important;
+    }
+    /* Dropdown menu popover (the list that opens) is rendered outside
+       the sidebar in the DOM, so it needs its own rule, not scoped
+       to [data-testid="stSidebar"]. */
+    div[data-baseweb="popover"] li {
+        color: var(--qg-navy) !important;
+        background-color: var(--qg-card-bg) !important;
+    }
+    div[data-baseweb="popover"] li:hover {
+        background-color: var(--qg-bg) !important;
+    }
 
     [data-testid="stVerticalBlockBorderWrapper"] {
         background-color: var(--qg-card-bg);
@@ -217,16 +263,12 @@ st.markdown(
     .qg-info-line:last-child { border-bottom: none; }
     .qg-info-value { font-weight: 700; }
     .qg-info-value.qg-info-alert { color: var(--qg-conflict); }
-.qg-info-subhead {
-    font-size: 0.95rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    color: var(--qg-navy);
-    margin: 0.9rem 0 0.4rem 0;
-    padding-top: 0.6rem;
-    border-top: 1px solid var(--qg-border);
-}
+    .qg-info-subhead {
+        font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2px;
+        color: var(--qg-navy); margin: 0.9rem 0 0.4rem 0; padding-top: 0.6rem;
+        border-top: 1px solid var(--qg-border);
+    }
+
     .stButton > button {
         background-color: var(--qg-navy); color: #FFFFFF; border: none; border-radius: 10px;
         padding: 0.35rem 0.9rem; font-weight: 600; width: 100%; transition: background-color 0.15s ease-in-out;
@@ -277,7 +319,7 @@ st.markdown(
 )
 
 # ------------------------------------------------------------------
-# SIDEBAR — Board Size and Difficulty, fully independent
+# SIDEBAR — Board Size and Difficulty, fully independent dropdowns
 # ------------------------------------------------------------------
 with st.sidebar:
     st.header("♛ Game Settings")
@@ -298,14 +340,6 @@ with st.sidebar:
         key="difficulty_select",
         on_change=on_difficulty_change,
     )
-
-    cfg = DIFFICULTY_CONFIG[st.session_state.difficulty]
-    st.markdown("---")
-    st.caption(
-        f"Board {st.session_state.board_size}×{st.session_state.board_size} · "
-        f"{cfg['blocked']} blocked cell(s) · {cfg['hints']} hint(s) · {cfg['lives']} lives"
-    )
-
 # ------------------------------------------------------------------
 # HERO HEADER
 # ------------------------------------------------------------------
